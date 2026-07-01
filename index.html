@@ -7,816 +7,1109 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
-      --navy:       #08111F;
-      --navy-mid:   #0F1E35;
-      --navy-panel: #152540;
-      --navy-border:#1E3459;
-      --steel:      #3A7BD5;
-      --steel-dim:  #2A5CA8;
-      --steel-glow: #5B9BF5;
-      --amber:      #E8A130;
-      --green:      #2EBD7A;
-      --red:        #E05A5A;
-      --text:       #D8E4F8;
-      --text-dim:   #7A9CC8;
-      --text-faint: #3A5580;
-      --mono:       'Courier New', Courier, monospace;
-      --sans:       'Segoe UI', system-ui, sans-serif;
+      --bg:           #000;
+      --panel:        #0D0D0D;
+      --card:         #141414;
+      --border:       #222;
+      --border-hi:    #333;
+      --blue:         #3A7BD5;
+      --blue-hi:      #5B9BF5;
+      --green:        #2EBD7A;
+      --amber:        #E8A130;
+      --red:          #E05A5A;
+      --text:         #E8E8E8;
+      --dim:          #888;
+      --faint:        #444;
+      --mono:         'Courier New', monospace;
+      --sans:         -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    html, body { height: 100%; overflow: hidden; }
     body {
-      background: var(--navy);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: var(--sans);
-      min-height: 100vh;
-      background-image:
-        linear-gradient(rgba(58,123,213,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(58,123,213,0.04) 1px, transparent 1px);
-      background-size: 40px 40px;
+      display: flex; flex-direction: column;
     }
 
     /* ── HEADER ── */
     header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 20px 32px;
-      border-bottom: 1px solid var(--navy-border);
-      background: rgba(15,30,53,0.9);
-      backdrop-filter: blur(6px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px; border-bottom: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0; z-index: 10;
     }
-    .logo-icon {
-      width: 36px; height: 36px;
-      background: var(--steel);
-      border-radius: 8px;
-      display: grid; place-items: center;
-      font-size: 18px;
+    header h1 { font-size: 14px; font-weight: 600; }
+    .ver {
+      font-size: 10px; font-family: var(--mono); color: var(--faint);
+      background: var(--card); border: 1px solid var(--border);
+      padding: 1px 7px; border-radius: 8px;
     }
-    header h1 {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      color: var(--text);
-    }
-    header span {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-left: 4px;
-      font-family: var(--mono);
-    }
-    .header-badge {
-      margin-left: auto;
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-faint);
-      border: 1px solid var(--navy-border);
-      padding: 3px 10px;
-      border-radius: 20px;
+    .hdr-right { margin-left: auto; font-size: 10px; font-family: var(--mono); color: var(--faint); }
+
+    /* ── BODY SPLIT ── */
+    .app { display: flex; flex: 1; min-height: 0; }
+
+    /* ── LEFT PANEL ── */
+    .left {
+      width: 520px; min-width: 320px; max-width: 920px; flex-shrink: 0;
+      background: var(--panel);
+      display: flex; flex-direction: column; overflow: hidden;
     }
 
-    /* ── LAYOUT ── */
-    main {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 36px 24px 80px;
+    /* RESIZE HANDLE */
+    .resize-handle {
+      width: 6px; flex-shrink: 0; cursor: col-resize;
+      background: var(--border); position: relative; z-index: 5;
+      transition: background .15s;
+    }
+    .resize-handle:hover, .resize-handle.dragging { background: var(--blue); }
+    .left-scroll { flex: 1; overflow-y: auto; padding-bottom: 4px; }
+    .left-scroll::-webkit-scrollbar { width: 4px; }
+    .left-scroll::-webkit-scrollbar-thumb { background: var(--border-hi); }
+
+    .sec { padding: 18px 18px 16px; border-bottom: 1px solid var(--border); }
+    .sec-lbl {
+      font-size: 9px; font-family: var(--mono); text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--faint); margin-bottom: 10px;
     }
 
-    /* ── DROP ZONE ── */
-    .drop-zone {
-      border: 2px dashed var(--navy-border);
-      border-radius: 14px;
-      padding: 56px 32px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
-      background: rgba(21,37,64,0.4);
+    /* DROP */
+    .drop {
+      border: 1px dashed var(--border-hi); border-radius: 8px; padding: 26px 16px;
+      text-align: center; cursor: pointer; position: relative;
+      background: var(--card); transition: border-color .2s, background .2s;
     }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--steel);
-      background: rgba(58,123,213,0.06);
-    }
-    .drop-zone input[type=file] {
-      position: absolute; inset: 0;
-      opacity: 0; cursor: pointer; width: 100%; height: 100%;
-    }
-    .drop-icon {
-      font-size: 40px;
-      margin-bottom: 14px;
-      filter: grayscale(0.3);
-    }
-    .drop-zone h2 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .drop-zone p {
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-    .drop-zone .file-types {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-faint);
-      margin-top: 12px;
-    }
+    .drop:hover, .drop.over { border-color: var(--blue); background: rgba(58,123,213,.06); }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop p  { font-size: 13px; color: var(--dim); margin-top: 4px; }
+    .drop small { font-size: 11px; color: var(--faint); font-family: var(--mono); }
 
-    /* ── FILE PILLS ── */
-    #file-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 16px;
+    /* FILE PILLS */
+    #file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+    .fpill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 5px; padding: 5px 8px;
+      font-size: 10px; font-family: var(--mono); color: var(--dim);
     }
-    .file-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--navy-panel);
-      border: 1px solid var(--navy-border);
-      border-radius: 20px;
-      padding: 5px 12px;
-      font-size: 12px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-    }
-    .file-pill .remove {
-      cursor: pointer;
-      color: var(--text-faint);
-      font-size: 14px;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-    .file-pill .remove:hover { color: var(--red); }
+    .fpill .fn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fpill .rm { cursor: pointer; color: var(--faint); font-size: 13px; transition: color .15s; }
+    .fpill .rm:hover { color: var(--red); }
 
-    /* ── CONTROLS ── */
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      margin-top: 24px;
-      align-items: end;
+    /* MODE TABS */
+    .mtabs {
+      display: flex; gap: 3px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 7px; padding: 3px; margin-bottom: 10px;
     }
-    .field label {
-      display: block;
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 7px;
+    .mtab {
+      flex: 1; padding: 5px 6px; border-radius: 4px; border: none;
+      background: transparent; color: var(--dim); font-size: 11px;
+      cursor: pointer; transition: all .15s; font-family: var(--sans);
     }
-    .field input {
-      width: 100%;
-      background: var(--navy-panel);
-      border: 1px solid var(--navy-border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .field input:focus { border-color: var(--steel); }
-    .field input::placeholder { color: var(--text-faint); }
+    .mtab.on { background: var(--blue); color: #fff; font-weight: 600; }
 
+    /* FIELD */
+    .fld { margin-bottom: 10px; }
+    .fld label { display: block; font-size: 11px; font-family: var(--mono); color: var(--dim); margin-bottom: 5px; }
+    .fld input, .fld select {
+      width: 100%; background: var(--card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 12px; color: var(--text);
+      font-family: var(--mono); font-size: 14px; outline: none; transition: border-color .2s;
+    }
+    .fld input:focus, .fld select:focus { border-color: var(--blue); }
+    .fld input::placeholder { color: var(--faint); }
+    .hint { font-size: 10px; color: var(--faint); font-family: var(--mono); margin-top: 4px; }
+
+    /* AUTO CHIPS */
+    #auto-found { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .chip {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 7px; font-size: 10px; font-family: var(--mono);
+      cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px;
+      color: var(--dim);
+    }
+    .chip:hover { border-color: var(--blue-hi); }
+    .chip.on { background: rgba(58,123,213,.15); border-color: var(--blue); color: var(--blue-hi); }
+    .chip .cc { color: var(--faint); font-size: 9px; }
+
+    /* TOGGLE ROW */
+    .tog-row {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 5px; padding: 8px 10px; margin-bottom: 8px;
+    }
+    .tog-row .tl { font-size: 11px; flex: 1; line-height: 1.4; }
+    .tog-row .tl small { font-size: 9px; color: var(--faint); display: block; }
+    .badge-slow {
+      font-size: 9px; font-family: var(--mono); color: var(--amber);
+      background: rgba(232,161,48,.1); border: 1px solid rgba(232,161,48,.2);
+      padding: 1px 5px; border-radius: 6px; white-space: nowrap;
+    }
+    .tog {
+      width: 32px; height: 18px; background: var(--border-hi);
+      border-radius: 9px; cursor: pointer; position: relative;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .tog.on { background: var(--blue); }
+    .tog::after {
+      content: ''; position: absolute; width: 12px; height: 12px;
+      border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s;
+    }
+    .tog.on::after { left: 17px; }
+
+    /* RUN */
+    .left-foot {
+      padding: 12px 14px; border-top: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0;
+    }
     .btn-run {
-      background: var(--steel);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 11px 28px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      white-space: nowrap;
-      letter-spacing: 0.02em;
+      width: 100%; background: var(--blue); color: #fff;
+      border: none; border-radius: 8px; padding: 13px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .2s; letter-spacing: .02em;
     }
-    .btn-run:hover { background: var(--steel-glow); }
-    .btn-run:active { transform: scale(0.98); }
-    .btn-run:disabled { background: var(--navy-border); cursor: not-allowed; }
+    .btn-run:hover { background: var(--blue-hi); }
+    .btn-run:disabled { opacity: .35; cursor: not-allowed; }
+    .prog-wrap { display: none; margin-top: 12px; }
+    .prog-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .prog-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--blue-hi)); width: 0%; transition: width .25s ease; border-radius: 4px; }
 
-    .hint {
-      font-size: 11px;
-      color: var(--text-faint);
-      margin-top: 6px;
-      font-family: var(--mono);
+    /* ── RIGHT PANEL ── */
+    .right {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; overflow: hidden;
     }
 
-    /* ── PROGRESS ── */
-    #progress-wrap {
-      display: none;
-      margin-top: 24px;
+    /* EMPTY */
+    .empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: var(--faint); font-family: var(--mono); font-size: 12px; gap: 8px;
     }
-    .progress-bar-bg {
-      height: 4px;
-      background: var(--navy-border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--steel), var(--steel-glow));
-      width: 0%;
-      transition: width 0.2s;
-      border-radius: 2px;
-    }
-    .progress-label {
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      margin-top: 8px;
+    .empty .ei { font-size: 36px; opacity: .25; }
+
+    /* RESULTS WRAP */
+    #rw {
+      display: none; flex-direction: column; flex: 1; min-height: 0;
     }
 
-    /* ── RESULTS SECTION ── */
-    #results-section {
-      display: none;
-      margin-top: 40px;
+    /* TOP BAR */
+    .rbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 16px; border-bottom: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0;
     }
-    .section-header {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--navy-border);
-      padding-bottom: 12px;
+    .rbar h3 { font-size: 12px; font-weight: 600; }
+    .tot-badge {
+      font-size: 11px; font-family: var(--mono);
+      background: rgba(46,189,122,.1); color: var(--green);
+      border: 1px solid rgba(46,189,122,.2); padding: 1px 8px; border-radius: 10px;
     }
-    .section-header h3 {
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      font-family: var(--mono);
+    .btn-csv {
+      margin-left: auto; background: transparent; border: 1px solid var(--border);
+      color: var(--dim); font-size: 10px; font-family: var(--mono);
+      padding: 3px 10px; border-radius: 4px; cursor: pointer; transition: all .15s;
     }
-    .section-header .total-badge {
-      font-family: var(--mono);
-      font-size: 13px;
-      background: rgba(46,189,122,0.12);
-      color: var(--green);
-      border: 1px solid rgba(46,189,122,0.25);
-      padding: 2px 10px;
-      border-radius: 12px;
-    }
-    .btn-export {
-      margin-left: auto;
-      background: transparent;
-      border: 1px solid var(--navy-border);
-      border-radius: 6px;
-      color: var(--text-dim);
-      font-size: 12px;
-      font-family: var(--mono);
-      padding: 5px 14px;
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
-    }
-    .btn-export:hover {
-      border-color: var(--steel);
-      color: var(--steel-glow);
-    }
+    .btn-csv:hover { border-color: var(--blue); color: var(--blue-hi); }
 
-    /* ── SUMMARY CARDS ── */
-    #summary-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 32px;
+    /* SUMMARY CARDS */
+    .sum-row {
+      display: flex; gap: 8px; padding: 10px 16px;
+      overflow-x: auto; flex-shrink: 0; border-bottom: 1px solid var(--border);
     }
-    .summary-card {
-      background: var(--navy-panel);
-      border: 1px solid var(--navy-border);
-      border-radius: 10px;
-      padding: 16px 18px;
+    .sum-row::-webkit-scrollbar { height: 3px; }
+    .sum-row::-webkit-scrollbar-thumb { background: var(--border-hi); }
+    .scard {
+      flex-shrink: 0; min-width: 90px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 7px; padding: 8px 12px;
     }
-    .summary-card .code {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--steel-glow);
-      margin-bottom: 6px;
-    }
-    .summary-card .count {
-      font-size: 32px;
-      font-weight: 700;
-      font-family: var(--mono);
-      color: var(--text);
-      line-height: 1;
-    }
-    .summary-card .label {
-      font-size: 11px;
-      color: var(--text-faint);
-      margin-top: 4px;
-    }
+    .scard .sc { font-family: var(--mono); font-size: 10px; margin-bottom: 3px; }
+    .scard .sn { font-size: 22px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+    .scard .sl { font-size: 9px; color: var(--faint); margin-top: 1px; }
 
-    /* ── RESULTS TABLE ── */
-    .table-wrap {
-      overflow-x: auto;
-      border-radius: 10px;
-      border: 1px solid var(--navy-border);
+    /* TABLE */
+    .tbl-wrap {
+      flex-shrink: 0; max-height: 170px; overflow-y: auto;
+      border-bottom: 1px solid var(--border);
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    .tbl-wrap::-webkit-scrollbar { width: 4px; }
+    .tbl-wrap::-webkit-scrollbar-thumb { background: var(--border-hi); }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
     thead th {
-      background: var(--navy-panel);
-      padding: 11px 16px;
-      text-align: left;
-      font-family: var(--mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      border-bottom: 1px solid var(--navy-border);
-      white-space: nowrap;
+      background: var(--panel); padding: 6px 14px; text-align: left;
+      font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--dim); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 1;
     }
-    tbody tr {
-      border-bottom: 1px solid rgba(30,52,89,0.6);
-      transition: background 0.12s;
-    }
-    tbody tr:hover { background: rgba(58,123,213,0.05); }
-    tbody tr:last-child { border-bottom: none; }
-    tbody td {
-      padding: 10px 16px;
-      color: var(--text);
-    }
-    td.file-col {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-dim);
-      max-width: 260px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    td.page-col {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-faint);
-      text-align: center;
-    }
-    td.code-col {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--steel-glow);
-      font-weight: 600;
-    }
-    td.count-col {
-      font-family: var(--mono);
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--green);
-    }
+    tbody tr { border-bottom: 1px solid rgba(34,34,34,.9); transition: background .1s; }
+    tbody tr:hover { background: rgba(58,123,213,.04); }
+    td { padding: 6px 14px; }
+    td.tf { font-family: var(--mono); font-size: 10px; color: var(--dim); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.tp { font-family: var(--mono); font-size: 10px; color: var(--faint); text-align: center; }
+    td.tc { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+    td.tn { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--green); }
+    td.ts { font-family: var(--mono); font-size: 9px; color: var(--faint); }
 
-    /* ── SPATIAL MAP ── */
-    .spatial-section {
-      margin-top: 32px;
-    }
-    .spatial-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .spatial-card {
-      background: var(--navy-panel);
-      border: 1px solid var(--navy-border);
-      border-radius: 10px;
-      padding: 16px;
-    }
-    .spatial-card h4 {
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .spatial-card canvas {
-      width: 100%;
-      border-radius: 6px;
-      border: 1px solid var(--navy-border);
-      display: block;
-    }
+    /* VIZ AREA */
+    .viz { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-    /* ── EMPTY / ERROR STATES ── */
-    .state-msg {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-faint);
-      font-family: var(--mono);
-      font-size: 13px;
+    /* VIZ TAB BAR */
+    .vtabs {
+      display: flex; align-items: center; gap: 2px;
+      padding: 7px 16px; border-bottom: 1px solid var(--border);
+      background: var(--panel); flex-shrink: 0;
     }
-    .state-msg.error { color: var(--red); }
+    .vtab {
+      padding: 4px 12px; border-radius: 4px; border: 1px solid transparent;
+      background: transparent; color: var(--dim); font-size: 11px;
+      cursor: pointer; transition: all .15s; font-family: var(--sans);
+    }
+    .vtab.on { background: var(--card); border-color: var(--border); color: var(--text); font-weight: 600; }
+    .pg-sel {
+      display: none; align-items: center; gap: 6px;
+      margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--border);
+      font-size: 10px; font-family: var(--mono); color: var(--dim);
+    }
+    .pg-sel select {
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--text); padding: 2px 6px; border-radius: 3px;
+      font-size: 10px; font-family: var(--mono); outline: none; max-width: 220px;
+    }
+    .zoom-ctl {
+      display: flex; align-items: center; gap: 4px;
+      margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--border);
+    }
+    .zbtn {
+      width: 20px; height: 20px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 3px; color: var(--dim); font-size: 12px; line-height: 1;
+      cursor: pointer; transition: all .15s; font-family: var(--mono);
+    }
+    .zbtn:hover { border-color: var(--blue-hi); color: var(--blue-hi); }
+    #zoom-pct { font-size: 10px; font-family: var(--mono); color: var(--dim); min-width: 34px; text-align: center; }
 
-    /* ── FOOTER ── */
-    footer {
-      text-align: center;
-      padding: 24px;
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-faint);
-      border-top: 1px solid var(--navy-border);
-      margin-top: 60px;
-    }
-    footer a { color: var(--steel-dim); text-decoration: none; }
-
-    @media (max-width: 640px) {
-      .controls { grid-template-columns: 1fr; }
-      .btn-run { width: 100%; }
-      header { padding: 14px 16px; }
-      main { padding: 20px 14px 60px; }
-    }
+    /* CANVAS WRAP */
+    .cvwrap { flex: 1; overflow: auto; position: relative; background: #000; }
+    .cvwrap::-webkit-scrollbar { width: 6px; height: 6px; }
+    .cvwrap::-webkit-scrollbar-thumb { background: var(--border-hi); }
+    #spatial-cv { display: block; }
+    #pdf-wrap { display: none; position: relative; }
+    #pdf-cv { display: block; }
+    #pdf-ov { position: absolute; top: 0; left: 0; pointer-events: none; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo-icon">📐</div>
-  <div>
-    <h1>Fixture Takeoff Tool <span>v1.0</span></h1>
-  </div>
-  <div class="header-badge">PDF text-layer extraction · client-side</div>
+  <span style="font-size:18px">📐</span>
+  <h1>Fixture Takeoff Tool</h1>
+  <span class="ver">v2.0</span>
+  <span class="hdr-right">PDF text layer · client-side · nothing uploaded</span>
 </header>
 
-<main>
+<div class="app">
 
-  <!-- DROP ZONE -->
-  <div class="drop-zone" id="drop-zone">
-    <input type="file" id="file-input" multiple accept=".pdf" />
-    <div class="drop-icon">🗂️</div>
-    <h2>Drop PDF drawing sheets here</h2>
-    <p>Or click to browse — multiple files supported</p>
-    <div class="file-types">Accepts: .pdf · CAD-exported (not scanned)</div>
-  </div>
-  <div id="file-list"></div>
+  <!-- ════════ LEFT ════════ -->
+  <aside class="left" id="left">
+    <div class="left-scroll">
 
-  <!-- CONTROLS -->
-  <div class="controls">
-    <div class="field">
-      <label>Fixture codes to search</label>
-      <input
-        type="text"
-        id="codes-input"
-        placeholder="F9ED, F8E, F20C, F86 ..."
-        value=""
-      />
-      <div class="hint">Comma-separated · case-insensitive · partial match supported (e.g. F8 matches F8, F8E, F8A…)</div>
-    </div>
-    <button class="btn-run" id="run-btn" disabled>Run Takeoff</button>
-  </div>
-
-  <!-- PROGRESS -->
-  <div id="progress-wrap">
-    <div class="progress-bar-bg">
-      <div class="progress-bar-fill" id="progress-fill"></div>
-    </div>
-    <div class="progress-label" id="progress-label">Processing…</div>
-  </div>
-
-  <!-- RESULTS -->
-  <div id="results-section">
-
-    <!-- SUMMARY CARDS -->
-    <div class="section-header">
-      <h3>Summary</h3>
-      <span class="total-badge" id="total-badge"></span>
-      <button class="btn-export" id="export-btn">⬇ Export CSV</button>
-    </div>
-    <div id="summary-cards"></div>
-
-    <!-- DETAIL TABLE -->
-    <div class="section-header" style="margin-top:32px;">
-      <h3>Per-Sheet Detail</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>Page</th>
-            <th>Fixture Code</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody id="results-body"></tbody>
-      </table>
-    </div>
-
-    <!-- SPATIAL MAP -->
-    <div class="spatial-section" id="spatial-section">
-      <div class="section-header" style="margin-top:32px;">
-        <h3>Spatial Distribution</h3>
-        <span style="font-size:11px;font-family:var(--mono);color:var(--text-faint);margin-left:8px;">fixture locations plotted per sheet</span>
+      <!-- FILES -->
+      <div class="sec">
+        <div class="sec-lbl">Drawing Sheets</div>
+        <div class="drop" id="drop">
+          <input type="file" id="fi" multiple accept=".pdf" />
+          <div style="font-size:24px">🗂️</div>
+          <p>Drop PDFs here or click to browse</p>
+          <small>Multiple sheets supported</small>
+        </div>
+        <div id="file-list"></div>
       </div>
-      <div class="spatial-grid" id="spatial-grid"></div>
+
+      <!-- SEARCH MODE -->
+      <div class="sec">
+        <div class="sec-lbl">Search Mode</div>
+        <div class="mtabs">
+          <button class="mtab on" data-m="manual">Manual</button>
+          <button class="mtab" data-m="auto">Auto-Detect</button>
+        </div>
+
+        <div id="m-manual">
+          <div class="fld">
+            <label>Fixture codes (comma-separated)</label>
+            <input id="codes" type="text" placeholder="F9ED, F8E, F20C, F86 …" />
+            <div class="hint">Partial match: "F8" matches F8, F8E, F8A …</div>
+          </div>
+        </div>
+
+        <div id="m-auto" style="display:none">
+          <div class="fld" style="display:flex;align-items:center;gap:8px">
+            <label style="margin:0;white-space:nowrap">Min occurrences</label>
+            <input id="min-occ" type="number" value="2" min="1" max="99" style="width:60px" />
+            <button id="scan-btn" style="padding:5px 10px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:11px;cursor:pointer;font-family:var(--mono)">Scan</button>
+          </div>
+          <div class="hint" style="margin-bottom:6px">Finds all fixture-like codes. Click chips to select.</div>
+          <div id="auto-found"></div>
+        </div>
+      </div>
+
+      <!-- OCR -->
+      <div class="sec">
+        <div class="sec-lbl">Visual Scan (OCR)</div>
+        <div class="tog-row">
+          <div class="tl">Scan rasterized text too
+            <small>For fixtures drawn as images, not text objects</small>
+          </div>
+          <span class="badge-slow">SLOW</span>
+          <div class="tog" id="ocr-tog"></div>
+        </div>
+        <div id="ocr-note" class="hint" style="display:none">
+          Renders each page at 200 DPI and runs OCR. Adds ~30–60 s per page.
+          OCR hits appear with dashed markers on the Marked PDF view.
+        </div>
+      </div>
+
+    </div><!-- /left-scroll -->
+
+    <!-- RUN -->
+    <div class="left-foot">
+      <button class="btn-run" id="run-btn" disabled>Run Takeoff</button>
+      <div class="prog-wrap" id="pw">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <span style="font-size:10px;font-family:var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px" id="pl">Processing…</span>
+          <span style="font-size:11px;font-family:var(--mono);color:var(--blue-hi);font-weight:600;flex-shrink:0;margin-left:8px" id="pp">0%</span>
+        </div>
+        <div class="prog-bg"><div class="prog-fill" id="pf"></div></div>
+        <div style="font-size:9px;font-family:var(--mono);color:var(--faint);margin-top:5px" id="ps">Starting…</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="resize-handle" id="resize-handle" title="Drag to resize"></div>
+
+  <!-- ════════ RIGHT ════════ -->
+  <main class="right">
+
+    <div class="empty" id="empty">
+      <div class="ei">📋</div>
+      <div>Load PDFs and run a takeoff to see results</div>
     </div>
 
-  </div>
+    <div id="rw">
 
-</main>
+      <!-- top bar -->
+      <div class="rbar">
+        <h3>Results</h3>
+        <span class="tot-badge" id="tot"></span>
+        <button class="btn-csv" id="pdf-dl-btn">⬇ Marked PDF</button>
+        <button class="btn-csv" id="csv-btn">⬇ CSV</button>
+      </div>
 
-<footer>
-  Fixture Takeoff Tool · reads PDF text layer directly · works entirely in your browser · no data is uploaded
-</footer>
+      <!-- summary cards -->
+      <div class="sum-row" id="sum-row"></div>
+
+      <!-- table -->
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Pg</th><th>Code</th><th>Count</th><th>Src</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- viz -->
+      <div class="viz">
+        <div class="vtabs">
+          <button class="vtab on" data-t="spatial">Spatial Map</button>
+          <button class="vtab" data-t="pdf">Marked PDF</button>
+          <div class="pg-sel" id="pg-sel">
+            <span>Sheet:</span>
+            <select id="pg-pick"></select>
+            <div class="zoom-ctl">
+              <button class="zbtn" id="zoom-out" title="Zoom out">−</button>
+              <span id="zoom-pct">Fit</span>
+              <button class="zbtn" id="zoom-in" title="Zoom in">+</button>
+              <button class="zbtn" id="zoom-reset" title="Reset to fit width" style="width:auto;padding:0 6px">Fit</button>
+            </div>
+          </div>
+        </div>
+        <div class="cvwrap" id="cvwrap">
+          <canvas id="spatial-cv"></canvas>
+          <div id="pdf-wrap">
+            <canvas id="pdf-cv"></canvas>
+            <canvas id="pdf-ov"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
 
 <script>
-  // ── PDF.js setup ──
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ─────────────────────────────────────────────────────
+// SETUP
+// ─────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  // ── State ──
-  let files = [];
-  let allResults = [];
+const PALETTE = ['#5B9BF5','#2EBD7A','#E8A130','#E05A5A','#B07DF5','#5BE5F0','#F07AB0','#C8D85A','#FF8C42','#A8E6CF'];
 
-  // ── Elements ──
-  const dropZone   = document.getElementById('drop-zone');
-  const fileInput  = document.getElementById('file-input');
-  const fileList   = document.getElementById('file-list');
-  const codesInput = document.getElementById('codes-input');
-  const runBtn     = document.getElementById('run-btn');
-  const progressWrap  = document.getElementById('progress-wrap');
-  const progressFill  = document.getElementById('progress-fill');
-  const progressLabel = document.getElementById('progress-label');
-  const resultsSection = document.getElementById('results-section');
-  const summaryCards   = document.getElementById('summary-cards');
-  const totalBadge     = document.getElementById('total-badge');
-  const resultsBody    = document.getElementById('results-body');
-  const exportBtn      = document.getElementById('export-btn');
-  const spatialGrid    = document.getElementById('spatial-grid');
+let files       = [];
+let buffers     = new Map();   // name → ArrayBuffer
+let results     = [];          // all result rows
+let codeColors  = {};
+let ocrOn       = false;
+let mode        = 'manual';
+let curTab      = 'spatial';
+let chipSel     = {};          // code → bool
 
-  // ── Drag & Drop ──
-  dropZone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZone.classList.add('drag-over');
+// refs
+const dropEl   = document.getElementById('drop');
+const fileInp  = document.getElementById('fi');
+const fileList = document.getElementById('file-list');
+const codesInp = document.getElementById('codes');
+const runBtn   = document.getElementById('run-btn');
+const pw       = document.getElementById('pw');
+const pf       = document.getElementById('pf');
+const pl       = document.getElementById('pl');
+const emptyEl  = document.getElementById('empty');
+const rwEl     = document.getElementById('rw');
+const totEl    = document.getElementById('tot');
+const sumRow   = document.getElementById('sum-row');
+const tbodyEl  = document.getElementById('tbody');
+const csvBtn   = document.getElementById('csv-btn');
+const cvwrap   = document.getElementById('cvwrap');
+const spatCv   = document.getElementById('spatial-cv');
+const pdfWrap  = document.getElementById('pdf-wrap');
+const pdfCv    = document.getElementById('pdf-cv');
+const pdfOv    = document.getElementById('pdf-ov');
+const pgSel    = document.getElementById('pg-sel');
+const pgPick   = document.getElementById('pg-pick');
+const ocrTog   = document.getElementById('ocr-tog');
+const autoFnd  = document.getElementById('auto-found');
+const pdfDlBtn = document.getElementById('pdf-dl-btn');
+const zoomIn   = document.getElementById('zoom-in');
+const zoomOut  = document.getElementById('zoom-out');
+const zoomRst  = document.getElementById('zoom-reset');
+const zoomPct  = document.getElementById('zoom-pct');
+
+let zoomMult = 1; // 1 = fit-to-width
+
+// ─────────────────────────────────────────────────────
+// FILES
+// ─────────────────────────────────────────────────────
+dropEl.addEventListener('dragover',  e => { e.preventDefault(); dropEl.classList.add('over'); });
+dropEl.addEventListener('dragleave', () => dropEl.classList.remove('over'));
+dropEl.addEventListener('drop',      e => { e.preventDefault(); dropEl.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+fileInp.addEventListener('change',   () => { addFiles([...fileInp.files]); fileInp.value = ''; });
+
+function addFiles(newFiles) {
+  newFiles.filter(f => f.type === 'application/pdf')
+    .forEach(f => { if (!files.find(x => x.name === f.name && x.size === f.size)) files.push(f); });
+  renderFiles();
+  runBtn.disabled = !files.length;
+  if (mode === 'auto' && files.length) scanAuto();
+}
+
+function renderFiles() {
+  fileList.innerHTML = '';
+  files.forEach((f, i) => {
+    const d = document.createElement('div');
+    d.className = 'fpill';
+    d.innerHTML = `<span class="fn" title="${f.name}">📄 ${f.name}</span>
+      <span style="color:var(--faint);font-size:9px">${(f.size/1024).toFixed(0)}KB</span>
+      <span class="rm" data-i="${i}">×</span>`;
+    fileList.appendChild(d);
   });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    addFiles([...e.dataTransfer.files]);
-  });
-  fileInput.addEventListener('change', () => {
-    addFiles([...fileInput.files]);
-    fileInput.value = '';
-  });
+  fileList.querySelectorAll('.rm').forEach(b =>
+    b.addEventListener('click', () => { files.splice(+b.dataset.i,1); renderFiles(); runBtn.disabled = !files.length; })
+  );
+}
 
-  function addFiles(newFiles) {
-    for (const f of newFiles) {
-      if (f.type === 'application/pdf' && !files.find(x => x.name === f.name && x.size === f.size)) {
-        files.push(f);
+// ─────────────────────────────────────────────────────
+// MODE TABS
+// ─────────────────────────────────────────────────────
+document.querySelectorAll('.mtab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.mtab').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  mode = b.dataset.m;
+  document.getElementById('m-manual').style.display = mode === 'manual' ? '' : 'none';
+  document.getElementById('m-auto').style.display   = mode === 'auto'   ? '' : 'none';
+  if (mode === 'auto' && files.length) scanAuto();
+}));
+
+document.getElementById('scan-btn').addEventListener('click', () => { if (files.length) scanAuto(); });
+document.getElementById('min-occ').addEventListener('change', () => { if (mode === 'auto' && files.length) scanAuto(); });
+
+// ─────────────────────────────────────────────────────
+// AUTO-DETECT SCAN
+// ─────────────────────────────────────────────────────
+async function scanAuto() {
+  autoFnd.innerHTML = '<span style="font-size:9px;font-family:var(--mono);color:var(--faint)">Scanning text layer…</span>';
+  const minC = parseInt(document.getElementById('min-occ').value) || 2;
+  const pat  = /^[A-Z0-9]{1,3}\d{0,3}[A-Z]{0,2}$/;
+  const cnts = {};
+
+  for (const file of files) {
+    const buf = await getBuf(file);
+    const pdf = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const cont = await page.getTextContent();
+      for (const item of cont.items) {
+        const t = item.str.trim().toUpperCase();
+        if (t.length >= 2 && t.length <= 6 && pat.test(t))
+          cnts[t] = (cnts[t] || 0) + 1;
       }
     }
-    renderFileList();
-    updateRunBtn();
   }
 
-  function renderFileList() {
-    fileList.innerHTML = '';
-    for (let i = 0; i < files.length; i++) {
-      const pill = document.createElement('div');
-      pill.className = 'file-pill';
-      const size = (files[i].size / 1024).toFixed(0);
-      pill.innerHTML = `<span>📄 ${files[i].name} <span style="color:var(--text-faint)">(${size} KB)</span></span>
-        <span class="remove" data-i="${i}">×</span>`;
-      fileList.appendChild(pill);
-    }
-    fileList.querySelectorAll('.remove').forEach(btn => {
-      btn.addEventListener('click', () => {
-        files.splice(+btn.dataset.i, 1);
-        renderFileList();
-        updateRunBtn();
-      });
+  autoFnd.innerHTML = '';
+  chipSel = {};
+  const sorted = Object.entries(cnts).filter(([,c]) => c >= minC).sort((a,b) => b[1]-a[1]);
+
+  if (!sorted.length) {
+    autoFnd.innerHTML = '<span style="font-size:9px;font-family:var(--mono);color:var(--faint)">No codes found — try lowering minimum.</span>';
+    return;
+  }
+  sorted.forEach(([code, count]) => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.dataset.code = code;
+    el.innerHTML = `${code} <span class="cc">×${count}</span>`;
+    el.addEventListener('click', () => {
+      el.classList.toggle('on');
+      chipSel[code] = el.classList.contains('on');
     });
+    autoFnd.appendChild(el);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// OCR TOGGLE
+// ─────────────────────────────────────────────────────
+ocrTog.addEventListener('click', () => {
+  ocrOn = !ocrOn;
+  ocrTog.classList.toggle('on', ocrOn);
+  document.getElementById('ocr-note').style.display = ocrOn ? '' : 'none';
+});
+
+// ─────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────
+async function getBuf(file) {
+  if (!buffers.has(file.name)) buffers.set(file.name, await file.arrayBuffer());
+  return buffers.get(file.name);
+}
+
+function setP(pct, msg, step) {
+  const p = Math.round(pct);
+  pf.style.width = p + '%';
+  pl.textContent = msg;
+  document.getElementById('pp').textContent = p + '%';
+  if (step) document.getElementById('ps').textContent = step;
+}
+
+let tesseractReady = false;
+function loadTess() {
+  return new Promise((res, rej) => {
+    if (tesseractReady) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload  = () => { tesseractReady = true; res(); };
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+let jspdfReady = false;
+function loadJsPDF() {
+  return new Promise((res, rej) => {
+    if (jspdfReady || window.jspdf) { jspdfReady = true; res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+    s.onload  = () => { jspdfReady = true; res(); };
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// RUN
+// ─────────────────────────────────────────────────────
+runBtn.addEventListener('click', async () => {
+  // Get codes to search
+  let codes = [];
+  if (mode === 'manual') {
+    codes = codesInp.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    if (!codes.length) { codesInp.focus(); return; }
+  } else {
+    codes = Object.entries(chipSel).filter(([,v]) => v).map(([k]) => k);
+    if (!codes.length) { alert('Select at least one code chip.'); return; }
   }
 
-  function updateRunBtn() {
-    runBtn.disabled = files.length === 0;
+  runBtn.disabled = true;
+  pw.style.display = 'block';
+  pf.style.width = '0%';
+  document.getElementById('pp').textContent = '0%';
+  document.getElementById('ps').textContent = 'Starting…';
+  results = [];
+
+  // ── TEXT LAYER PASS ──
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    setP((fi / files.length) * (ocrOn ? 45 : 90), `${file.name}`, `Reading text layer — file ${fi+1} of ${files.length}`);
+    try {
+      const buf = await getBuf(file);
+      const pdf = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const vp1  = page.getViewport({ scale: 1 });
+        const cont = await page.getTextContent();
+
+        const words = cont.items.filter(i => i.str.trim()).map(i => {
+          const [vx, vy] = vp1.convertToViewportPoint(i.transform[4], i.transform[5]);
+          return {
+            text: i.str.trim(),
+            nx: vx / vp1.width,
+            ny: vy / vp1.height,
+          };
+        });
+
+        for (const code of codes) {
+          const hits = words.filter(w => w.text.toUpperCase().includes(code));
+          if (hits.length)
+            results.push({ file: file.name, page: p, code, count: hits.length,
+              hits, pw: vp1.width, ph: vp1.height, ocr: false });
+        }
+      }
+    } catch(e) {
+      results.push({ file: file.name, page: '-', code:'ERROR', count:0, error:e.message, hits:[], ocr:false });
+    }
   }
 
-  // ── Run ──
-  runBtn.addEventListener('click', runTakeoff);
+  // ── OCR PASS ──
+  if (ocrOn) {
+    try {
+      await loadTess();
+      const worker = await Tesseract.createWorker('eng');
 
-  async function runTakeoff() {
-    const rawCodes = codesInput.value.trim();
-    if (!rawCodes) { codesInput.focus(); return; }
-
-    const codes = rawCodes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-
-    runBtn.disabled = true;
-    resultsSection.style.display = 'none';
-    progressWrap.style.display = 'block';
-    progressFill.style.width = '0%';
-
-    allResults = [];
-
-    const total = files.length;
-    for (let fi = 0; fi < files.length; fi++) {
-      const file = files[fi];
-      progressLabel.textContent = `Processing: ${file.name} (${fi + 1}/${total})`;
-      progressFill.style.width = `${(fi / total) * 100}%`;
-
-      try {
-        const buf = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let fi = 0; fi < files.length; fi++) {
+        const file = files[fi];
+        const buf  = await getBuf(file);
+        const pdf  = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
 
         for (let p = 1; p <= pdf.numPages; p++) {
-          const page = await pdf.getPage(p);
-          const content = await page.getTextContent();
-          const viewport = page.getViewport({ scale: 1 });
+          setP(45 + ((fi * pdf.numPages + p - 1) / (files.length * pdf.numPages)) * 50,
+            `${file.name}  ·  page ${p} of ${pdf.numPages}`, `OCR visual scan — file ${fi+1} of ${files.length}`);
 
-          // Collect all words with positions
-          const words = [];
-          for (const item of content.items) {
-            if (!item.str) continue;
-            // x = transform[4], y = transform[5] (PDF coords, origin bottom-left)
-            words.push({
-              text: item.str.trim(),
-              x: item.transform[4],
-              y: viewport.height - item.transform[5], // flip to top-left origin
-              pageW: viewport.width,
-              pageH: viewport.height
-            });
-          }
+          try {
+            const page = await pdf.getPage(p);
+            const vp1  = page.getViewport({ scale: 1 });
+            const vpR  = page.getViewport({ scale: 2 });
 
-          // Count per code
-          for (const code of codes) {
-            const hits = words.filter(w => w.text.toUpperCase().includes(code));
-            if (hits.length > 0) {
-              allResults.push({
-                file: file.name,
-                page: p,
-                code,
-                count: hits.length,
-                hits,
-                pageW: viewport.width,
-                pageH: viewport.height
-              });
+            const oc = document.createElement('canvas');
+            oc.width = vpR.width; oc.height = vpR.height;
+            await page.render({ canvasContext: oc.getContext('2d'), viewport: vpR }).promise;
+
+            // Tesseract.js v5 only returns word/line/block data when explicitly requested.
+            const { data } = await worker.recognize(oc, {}, { blocks: true });
+            const words = [];
+            (data.blocks || []).forEach(block =>
+              (block.paragraphs || []).forEach(para =>
+                (para.lines || []).forEach(line =>
+                  (line.words || []).forEach(w => words.push(w))
+                )
+              )
+            );
+
+            for (const code of codes) {
+              const oHits = words
+                .filter(w => w.confidence > 45 && w.text.trim().toUpperCase().includes(code))
+                .map(w => ({
+                  text: w.text.trim(),
+                  nx: ((w.bbox.x0 + w.bbox.x1) / 2) / oc.width,
+                  ny: ((w.bbox.y0 + w.bbox.y1) / 2) / oc.height,
+                  fromOCR: true,
+                }));
+
+              if (!oHits.length) continue;
+              const ex = results.find(r => r.file === file.name && r.page === p && r.code === code && !r.ocr);
+              if (ex) {
+                const novel = oHits.filter(oh =>
+                  !ex.hits.some(eh => Math.abs(eh.nx-oh.nx)<0.025 && Math.abs(eh.ny-oh.ny)<0.025)
+                );
+                if (novel.length) { ex.hits.push(...novel); ex.count += novel.length; }
+              } else {
+                results.push({ file: file.name, page: p, code, count: oHits.length,
+                  hits: oHits, pw: vp1.width, ph: vp1.height, ocr: true });
+              }
             }
+          } catch (pageErr) {
+            console.warn(`OCR failed on ${file.name} p${p}:`, pageErr);
           }
         }
-      } catch (err) {
-        allResults.push({ file: file.name, page: '-', code: 'ERROR', count: 0, error: err.message, hits: [] });
       }
-    }
-
-    progressFill.style.width = '100%';
-    progressLabel.textContent = 'Done.';
-    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
-
-    renderResults(codes);
-    runBtn.disabled = false;
+      await worker.terminate();
+    } catch(e) { console.warn('OCR failed:', e); }
   }
 
-  // ── Render Results ──
-  function renderResults(codes) {
-    resultsSection.style.display = 'block';
+  setP(100, 'Complete', 'All sheets processed — results ready');
+  setTimeout(() => { pw.style.display = 'none'; }, 700);
+  render();
+  runBtn.disabled = false;
+  runBtn.disabled = !files.length;
+});
 
-    // Summary cards — total per code across all sheets/pages
-    const totals = {};
-    for (const r of allResults) {
-      if (r.code === 'ERROR') continue;
-      totals[r.code] = (totals[r.code] || 0) + r.count;
-    }
+// ─────────────────────────────────────────────────────
+// RENDER RESULTS
+// ─────────────────────────────────────────────────────
+function render() {
+  emptyEl.style.display = 'none';
+  rwEl.style.display = 'flex';
+  zoomMult = 1;
 
-    const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
-    totalBadge.textContent = `${grandTotal} total fixtures`;
+  // Assign colors
+  const codes = [...new Set(results.filter(r=>r.code!=='ERROR').map(r=>r.code))];
+  codes.forEach((c,i) => codeColors[c] = PALETTE[i % PALETTE.length]);
 
-    summaryCards.innerHTML = '';
-    for (const [code, count] of Object.entries(totals)) {
-      const card = document.createElement('div');
-      card.className = 'summary-card';
-      card.innerHTML = `<div class="code">${code}</div>
-        <div class="count">${count}</div>
-        <div class="label">fixtures found</div>`;
-      summaryCards.appendChild(card);
-    }
+  // Total
+  const grand = results.filter(r=>r.code!=='ERROR').reduce((s,r)=>s+r.count,0);
+  totEl.textContent = `${grand} total`;
 
-    // Detail table
-    resultsBody.innerHTML = '';
-    if (allResults.length === 0) {
-      resultsBody.innerHTML = `<tr><td colspan="4" class="state-msg">No matches found. Check your fixture codes or verify the PDF has a text layer.</td></tr>`;
-    } else {
-      for (const r of allResults) {
-        const tr = document.createElement('tr');
-        if (r.code === 'ERROR') {
-          tr.innerHTML = `<td class="file-col" title="${r.file}">${r.file}</td>
-            <td class="page-col">—</td>
-            <td colspan="2" class="state-msg error">⚠ ${r.error}</td>`;
-        } else {
-          tr.innerHTML = `<td class="file-col" title="${r.file}">${r.file}</td>
-            <td class="page-col">${r.page}</td>
-            <td class="code-col">${r.code}</td>
-            <td class="count-col">${r.count}</td>`;
-        }
-        resultsBody.appendChild(tr);
-      }
-    }
-
-    // Spatial maps
-    spatialGrid.innerHTML = '';
-    const spatialResults = allResults.filter(r => r.hits && r.hits.length > 0);
-
-    if (spatialResults.length > 0) {
-      document.getElementById('spatial-section').style.display = 'block';
-      // Group by file+page
-      const groups = {};
-      for (const r of spatialResults) {
-        const key = `${r.file}::${r.page}`;
-        if (!groups[key]) groups[key] = { file: r.file, page: r.page, pageW: r.pageW, pageH: r.pageH, allHits: [] };
-        for (const h of r.hits) groups[key].allHits.push({ ...h, code: r.code });
-      }
-
-      const codeColors = {};
-      const palette = ['#5B9BF5','#2EBD7A','#E8A130','#E05A5A','#B07DF5','#5BE5F0','#F07AB0','#C8D85A'];
-      let ci = 0;
-      for (const code of Object.keys(totals)) {
-        codeColors[code] = palette[ci++ % palette.length];
-      }
-
-      for (const [key, g] of Object.entries(groups)) {
-        const card = document.createElement('div');
-        card.className = 'spatial-card';
-        const label = g.page > 1 ? `${g.file} · Page ${g.page}` : g.file;
-        card.innerHTML = `<h4 title="${label}">${label}</h4>`;
-
-        const canvas = document.createElement('canvas');
-        const W = 300, H = Math.round(300 * (g.pageH / g.pageW));
-        canvas.width = W;
-        canvas.height = H;
-        canvas.style.height = H + 'px';
-
-        card.appendChild(canvas);
-        spatialGrid.appendChild(card);
-
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#0A1628';
-        ctx.fillRect(0, 0, W, H);
-
-        // Grid lines
-        ctx.strokeStyle = 'rgba(58,123,213,0.08)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-        for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-
-        // Page border
-        ctx.strokeStyle = 'rgba(58,123,213,0.3)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(1, 1, W-2, H-2);
-
-        // Dots
-        for (const hit of g.allHits) {
-          const px = (hit.x / g.pageW) * W;
-          const py = (hit.y / g.pageH) * H;
-          const color = codeColors[hit.code] || '#5B9BF5';
-          ctx.beginPath();
-          ctx.arc(px, py, 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = color + 'CC';
-          ctx.fill();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        }
-
-        // Legend
-        const legendCodes = [...new Set(g.allHits.map(h => h.code))];
-        let lx = 8, ly = H - 8 - legendCodes.length * 14;
-        for (const code of legendCodes) {
-          ctx.fillStyle = codeColors[code];
-          ctx.fillRect(lx, ly, 8, 8);
-          ctx.fillStyle = 'rgba(216,228,248,0.85)';
-          ctx.font = '9px Courier New';
-          ctx.fillText(code, lx + 12, ly + 7);
-          ly += 13;
-        }
-      }
-    } else {
-      document.getElementById('spatial-section').style.display = 'none';
-    }
+  // Summary cards
+  const totals = {};
+  results.filter(r=>r.code!=='ERROR').forEach(r => totals[r.code] = (totals[r.code]||0)+r.count);
+  sumRow.innerHTML = '';
+  for (const [code, cnt] of Object.entries(totals)) {
+    const d = document.createElement('div');
+    d.className = 'scard';
+    d.innerHTML = `<div class="sc" style="color:${codeColors[code]}">${code}</div>
+      <div class="sn">${cnt}</div><div class="sl">fixtures</div>`;
+    sumRow.appendChild(d);
   }
 
-  // ── CSV Export ──
-  exportBtn.addEventListener('click', () => {
-    let csv = 'File,Page,Fixture Code,Count\n';
-    for (const r of allResults) {
-      csv += `"${r.file}",${r.page},"${r.code}",${r.count}\n`;
+  // Table
+  tbodyEl.innerHTML = '';
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.code === 'ERROR') {
+      tr.innerHTML = `<td class="tf" title="${r.file}">${r.file}</td><td class="tp">—</td>
+        <td colspan="3" style="color:var(--red);font-size:10px;font-family:var(--mono)">⚠ ${r.error}</td>`;
+    } else {
+      tr.innerHTML = `<td class="tf" title="${r.file}">${r.file}</td>
+        <td class="tp">${r.page}</td>
+        <td class="tc" style="color:${codeColors[r.code]}">${r.code}</td>
+        <td class="tn">${r.count}</td>
+        <td class="ts">${r.ocr ? 'OCR' : 'text'}</td>`;
     }
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `fixture-takeoff-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    tbodyEl.appendChild(tr);
   });
+
+  // Page picker
+  pgPick.innerHTML = '';
+  const seen = new Set();
+  results.filter(r=>r.code!=='ERROR').forEach(r => {
+    const k = `${r.file}::${r.page}`;
+    if (!seen.has(k)) {
+      seen.add(k);
+      const o = document.createElement('option');
+      o.value = k;
+      o.textContent = `${r.file}  ·  p${r.page}`;
+      pgPick.appendChild(o);
+    }
+  });
+
+  drawSpatial();
+}
+
+// ─────────────────────────────────────────────────────
+// VIZ TABS
+// ─────────────────────────────────────────────────────
+document.querySelectorAll('.vtab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.vtab').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  curTab = b.dataset.t;
+  spatCv.style.display   = curTab === 'spatial' ? 'block' : 'none';
+  pdfWrap.style.display  = curTab === 'pdf'     ? 'block' : 'none';
+  pgSel.style.display    = curTab === 'pdf'     ? 'flex'  : 'none';
+  if (curTab === 'spatial') drawSpatial();
+  if (curTab === 'pdf')     drawMarkedPDF();
+}));
+
+pgPick.addEventListener('change', () => { zoomMult = 1; drawMarkedPDF(); });
+
+zoomIn.addEventListener('click', () => {
+  zoomMult = Math.min(4, +(zoomMult + 0.25).toFixed(2));
+  drawMarkedPDF();
+});
+zoomOut.addEventListener('click', () => {
+  zoomMult = Math.max(0.25, +(zoomMult - 0.25).toFixed(2));
+  drawMarkedPDF();
+});
+zoomRst.addEventListener('click', () => {
+  zoomMult = 1;
+  drawMarkedPDF();
+});
+
+// ─────────────────────────────────────────────────────
+// SPATIAL MAP
+// ─────────────────────────────────────────────────────
+function drawSpatial() {
+  const W = cvwrap.clientWidth  || 700;
+  const H = cvwrap.clientHeight || 450;
+  spatCv.width = W; spatCv.height = H;
+  const ctx = spatCv.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+  for (let x=0; x<W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const valid = results.filter(r => r.hits && r.hits.length && r.code !== 'ERROR');
+  if (!valid.length) {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.font = '12px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('No fixture positions to display', W/2, H/2);
+    return;
+  }
+
+  // Group by file+page
+  const grps = {};
+  valid.forEach(r => {
+    const k = `${r.file}::${r.page}`;
+    if (!grps[k]) grps[k] = { label: r.file + (r.page > 1 ? ` p${r.page}` : ''), hits: [] };
+    r.hits.forEach(h => grps[k].hits.push({ ...h, code: r.code }));
+  });
+
+  const gList = Object.values(grps);
+  const cols  = Math.ceil(Math.sqrt(gList.length));
+  const rows  = Math.ceil(gList.length / cols);
+  const mg    = 18;
+  const fw    = (W - mg * (cols + 1)) / cols;
+  const fh    = (H - mg * (rows + 1)) / rows;
+
+  gList.forEach((g, idx) => {
+    const col = idx % cols, row = Math.floor(idx / cols);
+    const fx = mg + col * (fw + mg), fy = mg + row * (fh + mg);
+
+    // frame
+    ctx.fillStyle = 'rgba(255,255,255,0.015)'; ctx.fillRect(fx, fy, fw, fh);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    ctx.strokeRect(fx, fy, fw, fh);
+
+    // label
+    const lbl = g.label.length > 34 ? '…' + g.label.slice(-32) : g.label;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '9px Courier New'; ctx.textAlign = 'left';
+    ctx.fillText(lbl, fx + 5, fy + 11);
+
+    // dots
+    g.hits.forEach(hit => {
+      const dx = fx + hit.nx * fw, dy = fy + hit.ny * fh;
+      const col = codeColors[hit.code] || '#5B9BF5';
+
+      // glow
+      const grd = ctx.createRadialGradient(dx, dy, 0, dx, dy, 10);
+      grd.addColorStop(0, col + '44'); grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(dx, dy, 10, 0, Math.PI*2); ctx.fill();
+
+      // dot
+      ctx.beginPath(); ctx.arc(dx, dy, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = col; ctx.fill();
+    });
+  });
+
+  // legend (bottom-right)
+  const legendCodes = [...new Set(valid.map(r => r.code))];
+  let lx = W - 8, ly = H - 8 - legendCodes.length * 14;
+  legendCodes.forEach(c => {
+    ctx.fillStyle = codeColors[c]; ctx.fillRect(lx - 72, ly, 9, 9);
+    ctx.fillStyle = 'rgba(232,232,232,0.65)'; ctx.font = '9px Courier New'; ctx.textAlign = 'left';
+    ctx.fillText(c, lx - 60, ly + 8);
+    ly += 14;
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// MARKED PDF VIEW
+// ─────────────────────────────────────────────────────
+async function drawMarkedPDF() {
+  const val = pgPick.value;
+  if (!val) return;
+  const [fileName, pageStr] = val.split('::');
+  const pageNum = parseInt(pageStr);
+  const file = files.find(f => f.name === fileName);
+  if (!file) return;
+
+  const buf  = await getBuf(file);
+  const pdf  = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
+  const page = await pdf.getPage(pageNum);
+  const vp1  = page.getViewport({ scale: 1 });
+
+  // Scale to fill available width, then apply user zoom on top
+  const avail    = cvwrap.clientWidth || 800;
+  const fitScale = Math.min(2.5, (avail - 24) / vp1.width);
+  const scale    = fitScale * zoomMult;
+  const vp       = page.getViewport({ scale });
+
+  zoomPct.textContent = zoomMult === 1 ? 'Fit' : Math.round(zoomMult * 100) + '%';
+
+  pdfCv.width = vp.width; pdfCv.height = vp.height;
+  await page.render({ canvasContext: pdfCv.getContext('2d'), viewport: vp }).promise;
+
+  pdfOv.width  = vp.width; pdfOv.height = vp.height;
+  pdfOv.style.width  = vp.width  + 'px';
+  pdfOv.style.height = vp.height + 'px';
+
+  const oct = pdfOv.getContext('2d');
+  oct.clearRect(0, 0, vp.width, vp.height);
+
+  const pageRes = results.filter(r => r.file === fileName && r.page === pageNum && r.hits);
+  drawMarkersAndLegend(oct, pageRes, vp.width, vp.height);
+}
+
+// Draws fixture markers + legend onto any 2D context (shared by the live
+// overlay canvas and the marked-PDF export).
+function drawMarkersAndLegend(ctx, pageRes, w, h) {
+  pageRes.forEach(r => {
+    const color = codeColors[r.code] || '#5B9BF5';
+    r.hits.forEach(hit => {
+      const dx = hit.nx * w, dy = hit.ny * h;
+      const isOCR = hit.fromOCR;
+      const rad = isOCR ? 14 : 10;
+
+      ctx.beginPath(); ctx.arc(dx, dy, rad, 0, Math.PI*2);
+      ctx.fillStyle = color + '2A'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+      ctx.setLineDash(isOCR ? [5, 3] : []);
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+  });
+
+  // Legend
+  const lCodes = [...new Set(pageRes.map(r => r.code))];
+  if (lCodes.length) {
+    const ph = lCodes.length * 17 + 12;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(8, 8, 110, ph); // box
+    let ly = 20;
+    lCodes.forEach(code => {
+      ctx.fillStyle = codeColors[code]; ctx.fillRect(14, ly - 7, 10, 10);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Courier New';
+      ctx.fillText(code, 30, ly); ly += 17;
+    });
+    // OCR note
+    const hasOCR = pageRes.some(r => r.ocr);
+    if (hasOCR) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(8, ph+10, 150, 18);
+      ctx.fillStyle = 'rgba(232,232,232,0.5)'; ctx.font = '9px Courier New';
+      ctx.fillText('- - -  dashed = OCR hit', 14, ph+22);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// CSV
+// ─────────────────────────────────────────────────────
+csvBtn.addEventListener('click', () => {
+  let csv = 'File,Page,Fixture Code,Count,Source\n';
+  results.forEach(r => csv += `"${r.file}",${r.page},"${r.code}",${r.count},"${r.ocr?'OCR':'text'}"\n`);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `fixture-takeoff-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+});
+
+// ─────────────────────────────────────────────────────
+// DOWNLOAD MARKED PDF
+// ─────────────────────────────────────────────────────
+pdfDlBtn.addEventListener('click', async () => {
+  const pageKeys = [...new Set(
+    results.filter(r => r.code !== 'ERROR' && r.hits && r.hits.length)
+      .map(r => `${r.file}::${r.page}`)
+  )];
+  if (!pageKeys.length) { alert('No marked pages to export.'); return; }
+
+  pdfDlBtn.disabled = true;
+  const origLabel = pdfDlBtn.textContent;
+  pdfDlBtn.textContent = 'Exporting…';
+
+  try {
+    await loadJsPDF();
+    let out = null;
+
+    for (const key of pageKeys) {
+      const [fileName, pageStr] = key.split('::');
+      const pageNum = parseInt(pageStr);
+      const file = files.find(f => f.name === fileName);
+      if (!file) continue;
+
+      const buf  = await getBuf(file);
+      const pdf  = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
+      const page = await pdf.getPage(pageNum);
+      const vp   = page.getViewport({ scale: 2 });
+
+      const cv  = document.createElement('canvas');
+      cv.width  = vp.width; cv.height = vp.height;
+      const ctx = cv.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      const pageRes = results.filter(r => r.file === fileName && r.page === pageNum && r.hits);
+      drawMarkersAndLegend(ctx, pageRes, vp.width, vp.height);
+
+      const imgData = cv.toDataURL('image/jpeg', 0.85);
+      const orient  = vp.width > vp.height ? 'l' : 'p';
+      if (!out) {
+        out = new jspdf.jsPDF({ orientation: orient, unit: 'pt', format: [vp.width, vp.height] });
+      } else {
+        out.addPage([vp.width, vp.height], orient);
+      }
+      out.addImage(imgData, 'JPEG', 0, 0, vp.width, vp.height);
+    }
+
+    if (out) out.save(`fixture-takeoff-marked-${new Date().toISOString().slice(0,10)}.pdf`);
+  } catch (e) {
+    console.warn('Marked PDF export failed:', e);
+    alert('Could not export marked PDF — see console for details.');
+  } finally {
+    pdfDlBtn.disabled = false;
+    pdfDlBtn.textContent = origLabel;
+  }
+});
+
+// ─────────────────────────────────────────────────────
+// RESIZE
+// ─────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (results.length && curTab === 'spatial') drawSpatial();
+  if (results.length && curTab === 'pdf')     drawMarkedPDF();
+});
+
+// ─────────────────────────────────────────────────────
+// LEFT PANEL DRAG-TO-RESIZE
+// ─────────────────────────────────────────────────────
+const leftEl  = document.getElementById('left');
+const resizeH = document.getElementById('resize-handle');
+let dragging  = false;
+
+resizeH.addEventListener('mousedown', () => {
+  dragging = true;
+  resizeH.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+});
+
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const w = Math.min(920, Math.max(320, e.clientX));
+  leftEl.style.width = w + 'px';
+});
+
+window.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  resizeH.classList.remove('dragging');
+  document.body.style.userSelect = '';
+  if (results.length && curTab === 'spatial') drawSpatial();
+  if (results.length && curTab === 'pdf')     drawMarkedPDF();
+});
 </script>
 </body>
 </html>
