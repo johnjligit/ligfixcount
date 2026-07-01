@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixture Takeoff Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --navy:       #08111F;
+      --navy-mid:   #0F1E35;
+      --navy-panel: #152540;
+      --navy-border:#1E3459;
+      --steel:      #3A7BD5;
+      --steel-dim:  #2A5CA8;
+      --steel-glow: #5B9BF5;
+      --amber:      #E8A130;
+      --green:      #2EBD7A;
+      --red:        #E05A5A;
+      --text:       #D8E4F8;
+      --text-dim:   #7A9CC8;
+      --text-faint: #3A5580;
+      --mono:       'Courier New', Courier, monospace;
+      --sans:       'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(58,123,213,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(58,123,213,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--navy-border);
+      background: rgba(15,30,53,0.9);
+      backdrop-filter: blur(6px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--steel);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 18px;
+    }
+    header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+    header span {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-left: 4px;
+      font-family: var(--mono);
+    }
+    .header-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-faint);
+      border: 1px solid var(--navy-border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── LAYOUT ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+    }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed var(--navy-border);
+      border-radius: 14px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      background: rgba(21,37,64,0.4);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--steel);
+      background: rgba(58,123,213,0.06);
+    }
+    .drop-zone input[type=file] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+      filter: grayscale(0.3);
+    }
+    .drop-zone h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .drop-zone p {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .drop-zone .file-types {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 12px;
+    }
+
+    /* ── FILE PILLS ── */
+    #file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .file-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--navy-panel);
+      border: 1px solid var(--navy-border);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+    }
+    .file-pill .remove {
+      cursor: pointer;
+      color: var(--text-faint);
+      font-size: 14px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .file-pill .remove:hover { color: var(--red); }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-top: 24px;
+      align-items: end;
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 7px;
+    }
+    .field input {
+      width: 100%;
+      background: var(--navy-panel);
+      border: 1px solid var(--navy-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--steel); }
+    .field input::placeholder { color: var(--text-faint); }
+
+    .btn-run {
+      background: var(--steel);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+    .btn-run:hover { background: var(--steel-glow); }
+    .btn-run:active { transform: scale(0.98); }
+    .btn-run:disabled { background: var(--navy-border); cursor: not-allowed; }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 6px;
+      font-family: var(--mono);
+    }
+
+    /* ── PROGRESS ── */
+    #progress-wrap {
+      display: none;
+      margin-top: 24px;
+    }
+    .progress-bar-bg {
+      height: 4px;
+      background: var(--navy-border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--steel), var(--steel-glow));
+      width: 0%;
+      transition: width 0.2s;
+      border-radius: 2px;
+    }
+    .progress-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* ── RESULTS SECTION ── */
+    #results-section {
+      display: none;
+      margin-top: 40px;
+    }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--navy-border);
+      padding-bottom: 12px;
+    }
+    .section-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+    .section-header .total-badge {
+      font-family: var(--mono);
+      font-size: 13px;
+      background: rgba(46,189,122,0.12);
+      color: var(--green);
+      border: 1px solid rgba(46,189,122,0.25);
+      padding: 2px 10px;
+      border-radius: 12px;
+    }
+    .btn-export {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid var(--navy-border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-export:hover {
+      border-color: var(--steel);
+      color: var(--steel-glow);
+    }
+
+    /* ── SUMMARY CARDS ── */
+    #summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .summary-card {
+      background: var(--navy-panel);
+      border: 1px solid var(--navy-border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .summary-card .code {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--steel-glow);
+      margin-bottom: 6px;
+    }
+    .summary-card .count {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text);
+      line-height: 1;
+    }
+    .summary-card .label {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 4px;
+    }
+
+    /* ── RESULTS TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--navy-border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: var(--navy-panel);
+      padding: 11px 16px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--navy-border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(30,52,89,0.6);
+      transition: background 0.12s;
+    }
+    tbody tr:hover { background: rgba(58,123,213,0.05); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td {
+      padding: 10px 16px;
+      color: var(--text);
+    }
+    td.file-col {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    td.page-col {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-faint);
+      text-align: center;
+    }
+    td.code-col {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--steel-glow);
+      font-weight: 600;
+    }
+    td.count-col {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    /* ── SPATIAL MAP ── */
+    .spatial-section {
+      margin-top: 32px;
+    }
+    .spatial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .spatial-card {
+      background: var(--navy-panel);
+      border: 1px solid var(--navy-border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .spatial-card h4 {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .spatial-card canvas {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--navy-border);
+      display: block;
+    }
+
+    /* ── EMPTY / ERROR STATES ── */
+    .state-msg {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .state-msg.error { color: var(--red); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-faint);
+      border-top: 1px solid var(--navy-border);
+      margin-top: 60px;
+    }
+    footer a { color: var(--steel-dim); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .controls { grid-template-columns: 1fr; }
+      .btn-run { width: 100%; }
+      header { padding: 14px 16px; }
+      main { padding: 20px 14px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">📐</div>
+  <div>
+    <h1>Fixture Takeoff Tool <span>v1.0</span></h1>
+  </div>
+  <div class="header-badge">PDF text-layer extraction · client-side</div>
+</header>
+
+<main>
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" multiple accept=".pdf" />
+    <div class="drop-icon">🗂️</div>
+    <h2>Drop PDF drawing sheets here</h2>
+    <p>Or click to browse — multiple files supported</p>
+    <div class="file-types">Accepts: .pdf · CAD-exported (not scanned)</div>
+  </div>
+  <div id="file-list"></div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="field">
+      <label>Fixture codes to search</label>
+      <input
+        type="text"
+        id="codes-input"
+        placeholder="F9ED, F8E, F20C, F86 ..."
+        value=""
+      />
+      <div class="hint">Comma-separated · case-insensitive · partial match supported (e.g. F8 matches F8, F8E, F8A…)</div>
+    </div>
+    <button class="btn-run" id="run-btn" disabled>Run Takeoff</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-label" id="progress-label">Processing…</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-section">
+
+    <!-- SUMMARY CARDS -->
+    <div class="section-header">
+      <h3>Summary</h3>
+      <span class="total-badge" id="total-badge"></span>
+      <button class="btn-export" id="export-btn">⬇ Export CSV</button>
+    </div>
+    <div id="summary-cards"></div>
+
+    <!-- DETAIL TABLE -->
+    <div class="section-header" style="margin-top:32px;">
+      <h3>Per-Sheet Detail</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Page</th>
+            <th>Fixture Code</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+    <!-- SPATIAL MAP -->
+    <div class="spatial-section" id="spatial-section">
+      <div class="section-header" style="margin-top:32px;">
+        <h3>Spatial Distribution</h3>
+        <span style="font-size:11px;font-family:var(--mono);color:var(--text-faint);margin-left:8px;">fixture locations plotted per sheet</span>
+      </div>
+      <div class="spatial-grid" id="spatial-grid"></div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Fixture Takeoff Tool · reads PDF text layer directly · works entirely in your browser · no data is uploaded
+</footer>
+
+<script>
+  // ── PDF.js setup ──
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // ── State ──
+  let files = [];
+  let allResults = [];
+
+  // ── Elements ──
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const fileList   = document.getElementById('file-list');
+  const codesInput = document.getElementById('codes-input');
+  const runBtn     = document.getElementById('run-btn');
+  const progressWrap  = document.getElementById('progress-wrap');
+  const progressFill  = document.getElementById('progress-fill');
+  const progressLabel = document.getElementById('progress-label');
+  const resultsSection = document.getElementById('results-section');
+  const summaryCards   = document.getElementById('summary-cards');
+  const totalBadge     = document.getElementById('total-badge');
+  const resultsBody    = document.getElementById('results-body');
+  const exportBtn      = document.getElementById('export-btn');
+  const spatialGrid    = document.getElementById('spatial-grid');
+
+  // ── Drag & Drop ──
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    addFiles([...e.dataTransfer.files]);
+  });
+  fileInput.addEventListener('change', () => {
+    addFiles([...fileInput.files]);
+    fileInput.value = '';
+  });
+
+  function addFiles(newFiles) {
+    for (const f of newFiles) {
+      if (f.type === 'application/pdf' && !files.find(x => x.name === f.name && x.size === f.size)) {
+        files.push(f);
+      }
+    }
+    renderFileList();
+    updateRunBtn();
+  }
+
+  function renderFileList() {
+    fileList.innerHTML = '';
+    for (let i = 0; i < files.length; i++) {
+      const pill = document.createElement('div');
+      pill.className = 'file-pill';
+      const size = (files[i].size / 1024).toFixed(0);
+      pill.innerHTML = `<span>📄 ${files[i].name} <span style="color:var(--text-faint)">(${size} KB)</span></span>
+        <span class="remove" data-i="${i}">×</span>`;
+      fileList.appendChild(pill);
+    }
+    fileList.querySelectorAll('.remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        files.splice(+btn.dataset.i, 1);
+        renderFileList();
+        updateRunBtn();
+      });
+    });
+  }
+
+  function updateRunBtn() {
+    runBtn.disabled = files.length === 0;
+  }
+
+  // ── Run ──
+  runBtn.addEventListener('click', runTakeoff);
+
+  async function runTakeoff() {
+    const rawCodes = codesInput.value.trim();
+    if (!rawCodes) { codesInput.focus(); return; }
+
+    const codes = rawCodes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+
+    runBtn.disabled = true;
+    resultsSection.style.display = 'none';
+    progressWrap.style.display = 'block';
+    progressFill.style.width = '0%';
+
+    allResults = [];
+
+    const total = files.length;
+    for (let fi = 0; fi < files.length; fi++) {
+      const file = files[fi];
+      progressLabel.textContent = `Processing: ${file.name} (${fi + 1}/${total})`;
+      progressFill.style.width = `${(fi / total) * 100}%`;
+
+      try {
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const content = await page.getTextContent();
+          const viewport = page.getViewport({ scale: 1 });
+
+          // Collect all words with positions
+          const words = [];
+          for (const item of content.items) {
+            if (!item.str) continue;
+            // x = transform[4], y = transform[5] (PDF coords, origin bottom-left)
+            words.push({
+              text: item.str.trim(),
+              x: item.transform[4],
+              y: viewport.height - item.transform[5], // flip to top-left origin
+              pageW: viewport.width,
+              pageH: viewport.height
+            });
+          }
+
+          // Count per code
+          for (const code of codes) {
+            const hits = words.filter(w => w.text.toUpperCase().includes(code));
+            if (hits.length > 0) {
+              allResults.push({
+                file: file.name,
+                page: p,
+                code,
+                count: hits.length,
+                hits,
+                pageW: viewport.width,
+                pageH: viewport.height
+              });
+            }
+          }
+        }
+      } catch (err) {
+        allResults.push({ file: file.name, page: '-', code: 'ERROR', count: 0, error: err.message, hits: [] });
+      }
+    }
+
+    progressFill.style.width = '100%';
+    progressLabel.textContent = 'Done.';
+    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+
+    renderResults(codes);
+    runBtn.disabled = false;
+  }
+
+  // ── Render Results ──
+  function renderResults(codes) {
+    resultsSection.style.display = 'block';
+
+    // Summary cards — total per code across all sheets/pages
+    const totals = {};
+    for (const r of allResults) {
+      if (r.code === 'ERROR') continue;
+      totals[r.code] = (totals[r.code] || 0) + r.count;
+    }
+
+    const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+    totalBadge.textContent = `${grandTotal} total fixtures`;
+
+    summaryCards.innerHTML = '';
+    for (const [code, count] of Object.entries(totals)) {
+      const card = document.createElement('div');
+      card.className = 'summary-card';
+      card.innerHTML = `<div class="code">${code}</div>
+        <div class="count">${count}</div>
+        <div class="label">fixtures found</div>`;
+      summaryCards.appendChild(card);
+    }
+
+    // Detail table
+    resultsBody.innerHTML = '';
+    if (allResults.length === 0) {
+      resultsBody.innerHTML = `<tr><td colspan="4" class="state-msg">No matches found. Check your fixture codes or verify the PDF has a text layer.</td></tr>`;
+    } else {
+      for (const r of allResults) {
+        const tr = document.createElement('tr');
+        if (r.code === 'ERROR') {
+          tr.innerHTML = `<td class="file-col" title="${r.file}">${r.file}</td>
+            <td class="page-col">—</td>
+            <td colspan="2" class="state-msg error">⚠ ${r.error}</td>`;
+        } else {
+          tr.innerHTML = `<td class="file-col" title="${r.file}">${r.file}</td>
+            <td class="page-col">${r.page}</td>
+            <td class="code-col">${r.code}</td>
+            <td class="count-col">${r.count}</td>`;
+        }
+        resultsBody.appendChild(tr);
+      }
+    }
+
+    // Spatial maps
+    spatialGrid.innerHTML = '';
+    const spatialResults = allResults.filter(r => r.hits && r.hits.length > 0);
+
+    if (spatialResults.length > 0) {
+      document.getElementById('spatial-section').style.display = 'block';
+      // Group by file+page
+      const groups = {};
+      for (const r of spatialResults) {
+        const key = `${r.file}::${r.page}`;
+        if (!groups[key]) groups[key] = { file: r.file, page: r.page, pageW: r.pageW, pageH: r.pageH, allHits: [] };
+        for (const h of r.hits) groups[key].allHits.push({ ...h, code: r.code });
+      }
+
+      const codeColors = {};
+      const palette = ['#5B9BF5','#2EBD7A','#E8A130','#E05A5A','#B07DF5','#5BE5F0','#F07AB0','#C8D85A'];
+      let ci = 0;
+      for (const code of Object.keys(totals)) {
+        codeColors[code] = palette[ci++ % palette.length];
+      }
+
+      for (const [key, g] of Object.entries(groups)) {
+        const card = document.createElement('div');
+        card.className = 'spatial-card';
+        const label = g.page > 1 ? `${g.file} · Page ${g.page}` : g.file;
+        card.innerHTML = `<h4 title="${label}">${label}</h4>`;
+
+        const canvas = document.createElement('canvas');
+        const W = 300, H = Math.round(300 * (g.pageH / g.pageW));
+        canvas.width = W;
+        canvas.height = H;
+        canvas.style.height = H + 'px';
+
+        card.appendChild(canvas);
+        spatialGrid.appendChild(card);
+
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0A1628';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(58,123,213,0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+        // Page border
+        ctx.strokeStyle = 'rgba(58,123,213,0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(1, 1, W-2, H-2);
+
+        // Dots
+        for (const hit of g.allHits) {
+          const px = (hit.x / g.pageW) * W;
+          const py = (hit.y / g.pageH) * H;
+          const color = codeColors[hit.code] || '#5B9BF5';
+          ctx.beginPath();
+          ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = color + 'CC';
+          ctx.fill();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+
+        // Legend
+        const legendCodes = [...new Set(g.allHits.map(h => h.code))];
+        let lx = 8, ly = H - 8 - legendCodes.length * 14;
+        for (const code of legendCodes) {
+          ctx.fillStyle = codeColors[code];
+          ctx.fillRect(lx, ly, 8, 8);
+          ctx.fillStyle = 'rgba(216,228,248,0.85)';
+          ctx.font = '9px Courier New';
+          ctx.fillText(code, lx + 12, ly + 7);
+          ly += 13;
+        }
+      }
+    } else {
+      document.getElementById('spatial-section').style.display = 'none';
+    }
+  }
+
+  // ── CSV Export ──
+  exportBtn.addEventListener('click', () => {
+    let csv = 'File,Page,Fixture Code,Count\n';
+    for (const r of allResults) {
+      csv += `"${r.file}",${r.page},"${r.code}",${r.count}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `fixture-takeoff-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  });
+</script>
+</body>
+</html>
