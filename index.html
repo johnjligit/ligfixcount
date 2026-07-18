@@ -303,7 +303,7 @@
 <header>
   <span style="font-size:18px">📐</span>
   <h1>Fixture Takeoff Tool</h1>
-  <span class="ver">v2.0</span>
+  <span class="ver">v2.1</span>
 </header>
 
 <div class="app">
@@ -553,9 +553,12 @@ async function scanAuto() {
     const pdf = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
+      const vp1  = page.getViewport({ scale: 1 });
       const cont = await page.getTextContent();
-      for (const item of cont.items) {
-        const t = item.str.trim().toUpperCase();
+      // Use direction-aware reconstruction so rotated/char-by-char text is assembled correctly
+      const words = extractWords(cont.items, vp1);
+      for (const w of words) {
+        const t = w.text.toUpperCase();
         if (t.length >= 2 && t.length <= 6 && pat.test(t))
           cnts[t] = (cnts[t] || 0) + 1;
       }
@@ -632,6 +635,110 @@ function loadJsPDF() {
   });
 }
 
+
+// ─────────────────────────────────────────────────────
+// DIRECTION-AWARE WORD RECONSTRUCTION
+// CAD PDFs often store text character-by-character.
+// Text may also be rotated (vertical), making naive
+// item-per-word extraction miss codes entirely.
+// This function groups adjacent chars along their
+// reading direction into complete tokens.
+// ─────────────────────────────────────────────────────
+function extractWords(items, vp1) {
+  const W = vp1.width, H = vp1.height;
+
+  // Build char list. transform = [a, b, c, d, tx, ty]
+  // Reading direction ≈ (a, b) / |(a,b)|
+  const chars = [];
+  for (const item of items) {
+    if (!item.str || !item.str.trim()) continue;
+    const [a, b, , , tx, ty] = item.transform;
+    const mag = Math.sqrt(a * a + b * b) || 1;
+    const dx = a / mag;   // reading dir x in PDF space
+    const dy = b / mag;   // reading dir y in PDF space (+y = up in PDF)
+    const fs = mag;
+    const w  = item.width || fs * item.str.length * 0.55;
+    chars.push({ text: item.str, xp: tx, yp: ty, dx, dy, fs, w });
+  }
+  if (!chars.length) return [];
+
+  // Sort so chars in the same run end up consecutive.
+  // Key: (perpendicular bucket, position along reading direction)
+  chars.sort((a, b) => {
+    const aVert = Math.abs(a.dy) > Math.abs(a.dx);
+    const bVert = Math.abs(b.dy) > Math.abs(b.dx);
+    if (aVert && bVert) {
+      const ca = Math.round(a.xp / (a.fs * 0.55));
+      const cb = Math.round(b.xp / (b.fs * 0.55));
+      if (ca !== cb) return ca - cb;
+      return (a.yp * a.dy) - (b.yp * b.dy);
+    } else if (!aVert && !bVert) {
+      const ra = Math.round(a.yp / (a.fs * 0.55));
+      const rb = Math.round(b.yp / (b.fs * 0.55));
+      if (ra !== rb) return ra - rb;
+      return (a.xp * a.dx) - (b.xp * b.dx);
+    }
+    return a.yp - b.yp;
+  });
+
+  const words = [];
+  let grp = [chars[0]];
+
+  const flush = g => {
+    if (!g.length) return;
+    const text = g.map(c => c.text).join('').trim();
+    if (!text) return;
+    const isVert = Math.abs(g[0].dy) > Math.abs(g[0].dx);
+    // Centre position of the group in PDF space
+    const cx = isVert
+      ? g[0].xp
+      : g.reduce((s, c) => s + c.xp, 0) / g.length;
+    const cy = isVert
+      ? g.reduce((s, c) => s + c.yp, 0) / g.length
+      : g[0].yp;
+    // Convert PDF coords → viewport coords (handles rotation/flip)
+    const [vx, vy] = vp1.convertToViewportPoint(cx, cy);
+    const nx = vx / W, ny = vy / H;
+    for (const part of text.split(/\s+/)) {
+      if (part) words.push({ text: part, nx, ny });
+    }
+  };
+
+  for (let i = 1; i < chars.length; i++) {
+    const prev = grp[grp.length - 1];
+    const curr = chars[i];
+    const fs   = Math.min(prev.fs, curr.fs);
+
+    const pVert = Math.abs(prev.dy) > Math.abs(prev.dx);
+    const cVert = Math.abs(curr.dy) > Math.abs(curr.dx);
+    const sameDir = pVert === cVert
+                 && Math.abs(prev.dy - curr.dy) < 0.15
+                 && Math.abs(prev.dx - curr.dx) < 0.15;
+
+    let join = false;
+    if (sameDir && pVert) {
+      // Vertical run: same x column, step along y in reading direction
+      const sameCol = Math.abs(curr.xp - prev.xp) < fs * 0.7;
+      const gap     = (curr.yp - prev.yp) * prev.dy;
+      join = sameCol && gap > 0 && gap < fs * 1.6;
+    } else if (sameDir) {
+      // Horizontal run: same y row, step along x in reading direction
+      const sameRow = Math.abs(curr.yp - prev.yp) < fs * 0.7;
+      const gap     = (curr.xp - prev.xp) * prev.dx - (prev.w || 0);
+      join = sameRow && gap > -fs * 0.4 && gap < fs * 1.3;
+    }
+
+    if (join) {
+      grp.push(curr);
+    } else {
+      flush(grp);
+      grp = [curr];
+    }
+  }
+  flush(grp);
+  return words;
+}
+
 // ─────────────────────────────────────────────────────
 // RUN
 // ─────────────────────────────────────────────────────
@@ -665,14 +772,7 @@ runBtn.addEventListener('click', async () => {
         const vp1  = page.getViewport({ scale: 1 });
         const cont = await page.getTextContent();
 
-        const words = cont.items.filter(i => i.str.trim()).map(i => {
-          const [vx, vy] = vp1.convertToViewportPoint(i.transform[4], i.transform[5]);
-          return {
-            text: i.str.trim(),
-            nx: vx / vp1.width,
-            ny: vy / vp1.height,
-          };
-        });
+        const words = extractWords(cont.items, vp1);
 
         for (const code of codes) {
           const hits = words.filter(w => w.text.toUpperCase().includes(code));
